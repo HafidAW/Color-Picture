@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Color Picture</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h2 {
+            padding-top: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+            font-size: 60px;
+            color: #fff;
+            background: rgb(2,0,36);
+            background: radial-gradient(circle, rgba(2,0,36,1) 0%, rgba(9,9,121,1) 34%, rgba(0,212,255,1) 86%);
+        }
+
+        #text {
+            padding-bottom: 10px;
+            text-align: center;
+            margin-bottom: 40px;
+            font-size: 20px;
+            color: #fff;
+        }
+
+        #bg {
+            background: rgb(2,0,36);
+            background: radial-gradient(circle, rgba(2,0,36,1) 0%, rgba(9,9,121,1) 34%, rgba(0,212,255,1) 86%);
+        }
+
+        h4 {
+            text-align: center;
+            margin-left: -50px;
+        }
+
+        #uploadContainer {
+            display: flex;
+            margin-bottom: 20px;
+            justify-content: center;
+        }
+
+        #uploadContainer input[type="file"],
+        #uploadContainer input[type="text"] {
+            width: calc(90% - 10px);
+            margin-bottom: 10px;
+            padding: 5px;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            border-radius: 1px;
+        }
+
+        #imageContainer {
+            margin-bottom: 20px;
+        }
+
+        #uploadedImage {
+            max-width: 100%;
+            height: auto;
+            border: 1px solid #ccc;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        #colorInfo {
+            margin-top: 20px;
+            border-top: 1px solid #ccc;
+            padding-top: 20px;
+            display: none;
+        }
+
+        .color-box {
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            width: 30%;
+            margin: auto;
+            text-align: center;
+        }
+
+        p {
+            margin: 5px 0;
+        }
+
+        button {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        .color-values {
+            margin-top: 10px;
+        }
+
+        .color-values p {
+            margin-bottom: 5px;
+        }
+
+        .upload-box {
+            display: flex;
+            align-items: center;
+        }
+
+        .upload-box input[type="text"] {
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div id="bg">
+        <h2>Color Picture</h2>
+        <div id="text">
+            <p>Website ini membantu anda mencari kode warna dari gambar yang anda upload</p>
+        </div>
+    </div>
+    <h4>Upload Gambar:</h4>
+    <div id="uploadContainer">
+        <div class="upload-box">
+            <input type="file" id="fileInput" accept="image/*">
+        </div>
+        <div class="upload-box">
+            <input type="text" id="imageUrl" placeholder="Paste image URL here">
+            <button onclick="loadImageFromUrl()">Load Image</button>
+        </div>
+    </div>
+    <hr>
+    <br>
+    <div id="imageContainer"></div>
+    <div id="colorInfo">
+        <div class="color-box">
+            <div id="colorValues" class="color-values"></div>
+        </div>
+    </div>
+
+    <script>
+        $(document).ready(function() {
+            // Function to load colors from Flask endpoint
+            function loadColors() {
+                fetch('/colors')
+                    .then(response => response.json())
+                    .then(data => {
+                        console.log('Colors:', data);
+                        // You can process the data here and use it as needed
+                    })
+                    .catch(error => console.error('Error loading colors:', error));
+            }
+
+            // Call loadColors function when the document is ready
+            loadColors();
+        });
+
+        $(document).ready(function() {
+            $("#fileInput").on('change', function(event) {
+                var file = event.target.files[0];
+                displayImage(file);
+            });
+
+            $(document).on('click', '#uploadedImage', function(event) { // Change event to dblclick
+                // Show color box only when image is double clicked
+                $("#colorInfo").show();
+                getColorInfo(event.offsetX, event.offsetY);
+            });
+
+        });
+
+        function displayImage(file) {
+            var reader = new FileReader();
+                
+            reader.onload = function(event) {
+                var img = new Image();
+                img.onload = function() {
+                    $("#imageContainer").html('<img src="' + img.src + '" id="uploadedImage" width="500">');
+                }
+                img.src = event.target.result;
+            }
+            reader.readAsDataURL(file);
+        }
+
+        function loadImageFromUrl() {
+            var imageUrl = document.getElementById("imageUrl").value;
+            fetch(imageUrl)
+                .then(response => response.blob())
+                .then(blob => {
+                    var file = new File([blob], "image.jpg");
+                    displayImage(file);
+                })
+                .catch(error => console.error('Error loading image:', error));
+        }
+
+        function getColorInfo(x, y) {
+            var canvas = document.createElement("canvas");
+            var context = canvas.getContext('2d');
+            var img = document.getElementById("uploadedImage");
+            canvas.width = img.width;
+            canvas.height = img.height;
+            context.drawImage(img, 0, 0, canvas.width, canvas.height);
+            var pixelData = context.getImageData(x, y, 1, 1).data;
+            
+            var r = pixelData[0];
+            var g = pixelData[1];
+            var b = pixelData[2];
+            var hex = rgbToHex(r, g, b);
+
+            var colorInfo = getColorInfoText(r, g, b, hex);
+            $("#colorValues").html(colorInfo);
+        }
+
+        function rgbToHex(r, g, b) {
+            return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+        }
+
+        function getColorInfoText(r, g, b, hex) {
+            return '<div>' +
+                   '<p>Kode Warna:</p><br>' +
+                   '<p>RGB: R=' + r + ', G=' + g + ', B=' + b + '</p>' +
+                   '<p>Hex: ' + hex + '</p>' +
+                   '</div>';
+        }
+    </script>
+</body>
+</html>
